@@ -750,8 +750,8 @@ class _MongoDB_php_mongo implements IQuarkMongoDBDriver {
 		if (!isset($model->_id)) return false;
 
 		return $this->_collection($model, $options)->remove(array(
-			                                                    '_id' => new \MongoId(self::_id($model))
-		                                                    ), $options);
+            '_id' => new \MongoId(self::_id($model))
+        ), $options);
 	}
 
 	/**
@@ -858,8 +858,8 @@ class _MongoDB_php_mongo implements IQuarkMongoDBDriver {
 		if (!self::IsValidId($id)) return null;
 
 		return self::_record($this->_collection($model, $options)->findOne(array(
-			                                                                   '_id' => new \MongoId($id)
-		                                                                   ), self::_fields($options)));
+            '_id' => new \MongoId($id)
+        ), self::_fields($options)));
 	}
 
 	/**
@@ -917,10 +917,10 @@ class _MongoDB_php_mongo implements IQuarkMongoDBDriver {
 	 */
 	public function Aggregate ($collection, $pipeline, $options) {
 		return $this->Command(array_merge(array(
-			                                  'aggregate' => $collection,
-			                                  'pipeline' => $pipeline,
-			                                  'allowDiskUse' => true
-		                                  ), $options));
+            'aggregate' => $collection,
+            'pipeline' => $pipeline,
+            'allowDiskUse' => true
+        ), $options));
 	}
 }
 
