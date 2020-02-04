@@ -1,5 +1,7 @@
 <?php
 namespace Quark;
+use Quark\ViewResources\Google\GoogleFont;
+use function sizeof;
 
 /**
  * Class Quark
@@ -2124,7 +2126,7 @@ trait QuarkEvent {
 	 */
 	public function TriggerArgs ($name, $args) {
 		if (!isset($this->_events[$name])) return true;
-
+		
 		foreach ($this->_events[$name] as $w => &$worker)
 			call_user_func_array($worker, $args);
 
@@ -6353,17 +6355,19 @@ class QuarkView implements IQuarkContainer {
 
 	/**
 	 * @param bool $minimize = true
+	 * @param bool $removeGoogleFonts = false
 	 *
 	 * @return string
 	 */
-	public function Resources ($minimize = true) {
+	public function Resources ($minimize = true, $removeGoogleFonts = false) {
 		$out = '';
 		$type = null;
 		$source = new QuarkSource();
 
 		$this->ResourceList();
-
 		foreach ($this->_resources as $i => &$resource) {
+            if ($removeGoogleFonts == true && $resource instanceof GoogleFont) continue;
+            
 			$source->Unload();
 			$min = $minimize && $resource instanceof IQuarkMinimizableViewResource && $resource->Minimize();
 
@@ -8009,7 +8013,7 @@ trait QuarkCollectionBehavior {
 			 * @upd $document->$key now uses null check. Need more testing.
 			 */
 			// TODO: $this->_matchTarget() signature which will serve non-existing keys if $this->MongoDBCompatible() is true
-			if (isset($document->$key) || $document->$key === null)
+			if (isset($document->$key))
 				$this->_matchOut($out, $outChanged, $this->_matchTarget($document->$key, $rule));
 		}
 		

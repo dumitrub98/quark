@@ -173,8 +173,17 @@ class QuarkSelfCDN implements IQuarkCDNProvider, IQuarkModel, IQuarkModelWithDat
 
 		$origin = $this->_host($id);
 
-		if (!$file->Exists())
+		if (!$file->Exists()) {
 			$file->Location($this->_host($id, false));
+
+			if ($file->tmp_name != null) {
+				// TODO: move uploaded file to $origin
+				if (!$file->Upload(false)) return false;
+			}
+			else {
+				// TODO: move existing file to $origin
+			}
+		}
 
 		$resource->origin = $origin;
 		$resource->hosts = array(sha1($origin));
