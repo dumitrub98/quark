@@ -1,5 +1,6 @@
 <?php
 namespace Quark;
+use Quark\ViewResources\FontAwesome\FontAwesome;
 use Quark\ViewResources\Google\GoogleFont;
 use function sizeof;
 
@@ -6359,7 +6360,7 @@ class QuarkView implements IQuarkContainer {
 	 *
 	 * @return string
 	 */
-	public function Resources ($minimize = true, $removeGoogleFonts = false) {
+	public function Resources ($minimize = true, $removeGoogleFonts = false, $removeFontAwesome = false) {
 		$out = '';
 		$type = null;
 		$source = new QuarkSource();
@@ -6367,7 +6368,8 @@ class QuarkView implements IQuarkContainer {
 		$this->ResourceList();
 		foreach ($this->_resources as $i => &$resource) {
             if ($removeGoogleFonts == true && $resource instanceof GoogleFont) continue;
-            
+            if ($removeFontAwesome == true && $resource instanceof FontAwesome) continue;
+
 			$source->Unload();
 			$min = $minimize && $resource instanceof IQuarkMinimizableViewResource && $resource->Minimize();
 
