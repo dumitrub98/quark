@@ -2,6 +2,7 @@
 namespace Quark;
 use Quark\ViewResources\FontAwesome\FontAwesome;
 use Quark\ViewResources\Google\GoogleFont;
+use Quark\ViewResources\jQuery\jQueryCore;
 use function sizeof;
 
 /**
@@ -6360,15 +6361,17 @@ class QuarkView implements IQuarkContainer {
 	 *
 	 * @return string
 	 */
-	public function Resources ($minimize = true, $removeGoogleFonts = false, $removeFontAwesome = false) {
+	public function Resources ($minimize = true, $removeGoogleFonts = false, $removeFontAwesome = false, $removeJquery = false) {
 		$out = '';
 		$type = null;
 		$source = new QuarkSource();
 
 		$this->ResourceList();
+
 		foreach ($this->_resources as $i => &$resource) {
             if ($removeGoogleFonts == true && $resource instanceof GoogleFont) continue;
             if ($removeFontAwesome == true && $resource instanceof FontAwesome) continue;
+            if ($removeJquery == true && $resource instanceof jQueryCore) continue;
 
 			$source->Unload();
 			$min = $minimize && $resource instanceof IQuarkMinimizableViewResource && $resource->Minimize();
@@ -24571,6 +24574,7 @@ class QuarkSQL {
 
 		foreach ($condition as $key => &$rule) {
 			$field = $this->Field($key);
+			
 			$value = $this->Value($rule);
 
 			if (is_array($rule))
@@ -24617,12 +24621,26 @@ class QuarkSQL {
 					break;
 
 				default:
-					$output[] = (is_string($key) && !is_array($rule)  ? $field : '') . (is_scalar($rule) ? '=' : ($value == self::NULL ? ' IS ' : '')) . $value;
+					$output[] =
+						(is_string($key) && !is_array($rule) ? $field : '') .
+						(is_scalar($rule) ? '=' : ($value == self::NULL ? ' IS ' : '')) .
+						$value;
 					break;
 			}
 		}
 
 		unset($key, $rule);
+
+		//Refactoring SQL query, if we need LOWER function
+		if (strpos($output[0], 'LOWER') >= 0) {
+			$step1 = preg_replace('#`LOWER\((.*)\)`#', "LOWER(`$1`)", $output[0]);//eliminate apostrophs
+
+			if (is_array($step1) && sizeof($step1) > 0) $output[0] = $step1[0];
+			else $output[0] = $step1;
+
+			unset($step1);
+		}
+		//END-OF-Refactoring SQL query, if we need LOWER function
 
 		return ($glue == '' ? ' WHERE ' : '') . implode($glue == '' ? ' AND ' : $glue, $output);
 	}
