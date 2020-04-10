@@ -3,7 +3,6 @@ namespace Quark;
 use Quark\ViewResources\FontAwesome\FontAwesome;
 use Quark\ViewResources\Google\GoogleFont;
 use Quark\ViewResources\jQuery\jQueryCore;
-use function sizeof;
 
 /**
  * Class Quark
@@ -10653,10 +10652,11 @@ class QuarkModel implements IQuarkContainer {
 	/**
 	 * @param string $name
 	 * @param array $options = []
+	 * @param bool $encode
 	 *
 	 * @return bool
 	 */
-	private function _op ($name, $options = []) {
+	private function _op ($name, $options = [], $encode = true) {
 		$name = ucfirst(strtolower($name));
 		$this->_op = $name;
 
@@ -10669,7 +10669,7 @@ class QuarkModel implements IQuarkContainer {
 
 		if ($name == self::OPERATION_REMOVE && !isset($options[self::OPTION_VALIDATE]) && Quark::Config()->ModelValidation() == self::CONFIG_VALIDATION_STORE)
 			$options[self::OPTION_VALIDATE] = false;
-
+		
 		$model = self::_export($this->_model, $options);
 		$this->_errors = self::$_errorFlux;
 		$this->_op = '';
@@ -10683,7 +10683,6 @@ class QuarkModel implements IQuarkContainer {
 		if ($ok !== null && !$ok) return false;
 
 		$out = self::_provider($model)->$name($model, $options);
-
 		$this->PopulateWith($model);
 
 		$hook = 'After' . $name;
@@ -10743,14 +10742,20 @@ class QuarkModel implements IQuarkContainer {
 	 * @param $criteria = []
 	 * @param array $options = []
 	 * @param callable(QuarkModel $model) $after = null
+	 * @param bool $rawReturn
 	 *
 	 * @return QuarkCollection|array
 	 */
-	public static function Find (IQuarkModel $model, $criteria = [], $options = [], callable $after = null) {
+	public static function Find (IQuarkModel $model, $criteria = [], $options = [], callable $after = null, $rawReturn = false) {
 		$records = array();
 
-		if (isset($options[self::OPTION_LIMIT]) && $options[self::OPTION_LIMIT] == self::LIMIT_NO)
+		if (isset($options[self::OPTION_LIMIT]) && $options[self::OPTION_LIMIT] == self::LIMIT_NO) {
 			unset($options[self::OPTION_LIMIT]);
+		}
+
+		if ($rawReturn == true) {
+			return self::_provider($model)->Find($model, $criteria, $options, true);
+		}
 
 		$raw = self::_provider($model)->Find($model, $criteria, $options);
 
@@ -12315,7 +12320,11 @@ class QuarkLocalizedString implements IQuarkModel, IQuarkLinkedModel, IQuarkMode
 	 * @return mixed
 	 */
 	public function Unlink () {
-		return json_encode($this->values);
+		$jsonEncodedFixed = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($match) {
+			return mb_convert_encoding(pack('H*', $match[1]), 'UTF-8', 'UCS-2BE');
+		}, json_encode($this->values));
+
+		return $jsonEncodedFixed;
 	}
 
 	/**
@@ -24756,12 +24765,13 @@ class QuarkSQL {
 				: null;
 
 			foreach ($model as $key => &$value)
-				if ($_fields === null || in_array($key, $_fields))
+				if ($_fields === null || in_array($key, $_fields)) {
 					$fields[] = $this->Field($key) . '=' . $this->Value($value);
+				}
 
 			$query_fields = implode(', ', $fields);
 		}
-
+		
 		return $this->Query(
 			$model,
 			$options,

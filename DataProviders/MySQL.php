@@ -174,21 +174,49 @@ class MySQL implements IQuarkDataProvider, IQuarkSQLDataProvider {
 	 * @param IQuarkModel $model
 	 * @param $criteria
 	 * @param array $options
+	 * @param bool $rawReturn
 	 *
 	 * @return array
 	 */
-	public function Find (IQuarkModel $model, $criteria, $options = []) {
+	public function Find (IQuarkModel $model, $criteria, $options = [], $rawReturn = false) {
 		$records = $this->_sql->Select($model, $criteria, $options);
 		if (!$records) return array();
-
 		$output = array();
+
+		//if we want only raw data
+		if ($rawReturn == true) {
+			if (sizeof($options[QuarkModel::OPTION_FIELDS]) == 1) {
+				$field = $options[QuarkModel::OPTION_FIELDS][0];
+
+				$output = array();
+
+				while(($row = mysqli_fetch_assoc($records))) {
+					$output[] = $row[$field];
+				}
+
+				unset($field);
+				unset($row);
+
+				return $output;
+			}
+		}
+
 		$fields = (object)$model->Fields();
 
 		foreach ($records as $record) {
-			foreach ($record as $key => &$value)
-				if (isset($fields->$key) && ($fields->$key instanceof QuarkCollection || ($fields->$key instanceof IQuarkModel && !($fields->$key instanceof QuarkLocalizedString)) || is_array($fields->$key)) && QuarkJSONIOProcessor::IsValid($value))
+			foreach ($record as $key => &$value) {
+				if (
+					isset($fields->$key) &&
+					(
+						$fields->$key instanceof QuarkCollection ||
+						($fields->$key instanceof IQuarkModel && !($fields->$key instanceof QuarkLocalizedString)) ||
+						is_array($fields->$key)
+					) &&
+					QuarkJSONIOProcessor::IsValid($value)
+				) {
 					$value = json_decode($value);
-
+				}
+			}
 			$output[] = $record;
 		}
 
