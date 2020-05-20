@@ -423,10 +423,16 @@ class MongoDB implements IQuarkDataProvider {
 	 * @param IQuarkModel $model
 	 * @param $criteria
 	 * @param $options = []
+	 * @param bool $rawReturn
 	 *
 	 * @return array
 	 */
-	public function Find (IQuarkModel $model, $criteria, $options = []) {
+	public function Find (IQuarkModel $model, $criteria, $options = [], $rawReturn = false) {
+		//if we want only raw data
+		if ($rawReturn == true) {
+			return $this->_driver->Find($model, $criteria, $options, true);
+		}
+
 		return $this->_driver->Find($model, $criteria, $options);
 	}
 
@@ -787,10 +793,11 @@ class _MongoDB_php_mongo implements IQuarkMongoDBDriver {
 	 * @param IQuarkModel $model
 	 * @param $criteria
 	 * @param $options
+	 * @param bool $rawReturn
 	 *
 	 * @return array
 	 */
-	public function Find (IQuarkModel $model, $criteria, $options = []) {
+	public function Find (IQuarkModel $model, $criteria, $options = [], $rawReturn = false) {
 		/**
 		 * @var \MongoCursor $raw
 		 */
@@ -807,7 +814,6 @@ class _MongoDB_php_mongo implements IQuarkMongoDBDriver {
 
 		$buffer = array();
 		$item = null;
-
 		foreach ($raw as $document) {
 			/**
 			 * @var \stdClass $document->_id
@@ -1294,10 +1300,11 @@ class _MongoDB_php_mongodb implements IQuarkMongoDBDriver {
 	 * @param IQuarkModel $model
 	 * @param $criteria
 	 * @param $options = []
+	 * @param bool $rawReturn
 	 *
 	 * @return array
 	 */
-	public function Find (IQuarkModel $model, $criteria, $options = []) {
+	public function Find (IQuarkModel $model, $criteria, $options = [], $rawReturn = false) {
 		$cursor = $this->_connection->executeQuery(
 			$this->_collection($model, $options),
 			new Query($criteria, $options)
@@ -1305,8 +1312,22 @@ class _MongoDB_php_mongodb implements IQuarkMongoDBDriver {
 
 		$out = array();
 
-		foreach ($cursor as $document)
-			$out[] = $document;
+		if (
+			$rawReturn == true &&
+			isset($options[QuarkModel::OPTION_FIELDS]) &&
+			sizeof($options[QuarkModel::OPTION_FIELDS]) == 1
+		) {
+			$field = $options[QuarkModel::OPTION_FIELDS][0];
+
+			foreach ($cursor as $document){
+				$out[] = (string)$document->$field;
+			}
+		}
+		else {
+			foreach ($cursor as $document){
+				$out[] = $document;
+			}
+		}
 
 		return $out;
 	}
